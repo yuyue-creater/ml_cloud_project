@@ -1,0 +1,64 @@
+# load_test.py
+import requests
+import time
+import json
+from concurrent.futures import ThreadPoolExecutor
+
+# Endpoints
+container_url = "https://ml-inference-serverless-35903996157.northamerica-northeast1.run.app/predict"
+serverless_url = "https://ml-inference-serverless-35903996157.northamerica-northeast1.run.app/predict"  # replace if different
+
+# Test data
+test_inputs = [
+    {"features": [5.1, 3.5, 1.4, 0.2]},
+    {"features": [6.2, 3.4, 5.4, 2.3]},
+    {"features": [5.9, 3.0, 5.1, 1.8]}
+]
+
+# Function to send POST request and record latency
+def send_request(url, data):
+    start = time.time()
+    try:
+        response = requests.post(url, json=data)
+        latency = time.time() - start
+        return {
+            "input": data,
+            "status_code": response.status_code,
+            "response": response.json() if response.status_code == 200 else response.text,
+            "latency_sec": latency
+        }
+    except Exception as e:
+        return {"input": data, "error": str(e)}
+
+# Function to test endpoint with concurrency
+def run_load_test(url, requests_per_endpoint=10, concurrent_workers=5):
+    results = []
+    with ThreadPoolExecutor(max_workers=concurrent_workers) as executor:
+        futures = [executor.submit(send_request, url, test_inputs[i % len(test_inputs)]) for i in range(requests_per_endpoint)]
+        for future in futures:
+            results.append(future.result())
+    return results
+
+# Run tests
+container_results = run_load_test(container_url, requests_per_endpoint=20)
+serverless_results = run_load_test(serverless_url, requests_per_endpoint=20)
+
+# Save results to JSON files
+with open("container_results.json", "w") as f:
+    json.dump(container_results, f, indent=2)
+
+with open("serverless_results.json", "w") as f:
+    json.dump(serverless_results, f, indent=2)
+
+# Print summary
+def print_summary(results, deployment_name):
+    latencies = [r["latency_sec"] for r in results if "latency_sec" in r]
+    if latencies:
+        print(f"{deployment_name} Summary:")
+        print(f"  Total Requests: {len(results)}")
+        print(f"  Average Latency: {sum(latencies)/len(latencies):.3f} sec")
+        print(f"  Max Latency: {max(latencies):.3f} sec")
+        print(f"  Min Latency: {min(latencies):.3f} sec\n")
+
+print_summary(container_results, "Container Deployment")
+print_summary(serverless_results, "Serverless Deployment")
