@@ -5,8 +5,8 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 
 # Endpoints
-container_url = "https://ml-inference-serverless-35903996157.northamerica-northeast1.run.app/predict"
-serverless_url = "https://ml-inference-serverless-35903996157.northamerica-northeast1.run.app/predict"  # replace if different
+container_url = "https://iris-container-api-x76cce2eva-uc.a.run.app/predict"
+serverless_url = "https://iris-predict-fn-x76cce2eva-uc.a.run.app"  # replace if different
 
 # Test data
 test_inputs = [
@@ -31,7 +31,7 @@ def send_request(url, data):
         return {"input": data, "error": str(e)}
 
 # Function to test endpoint with concurrency
-def run_load_test(url, requests_per_endpoint=10, concurrent_workers=5):
+def run_load_test(url, requests_per_endpoint=50, concurrent_workers=10):
     results = []
     with ThreadPoolExecutor(max_workers=concurrent_workers) as executor:
         futures = [executor.submit(send_request, url, test_inputs[i % len(test_inputs)]) for i in range(requests_per_endpoint)]

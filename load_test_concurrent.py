@@ -3,8 +3,9 @@ import requests
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-container_url = "https://ml-inference-container-xxxx.run.app/predict"
-serverless_url = "https://ml-inference-serverless-35903996157.northamerica-northeast1.run.app/predict"
+container_url = "https://iris-container-api-x76cce2eva-uc.a.run.app/predict"
+serverless_url = "https://iris-predict-fn-x76cce2eva-uc.a.run.app"
+
 payloads = [
     {"features": [5.1, 3.5, 1.4, 0.2]},
     {"features": [6.2, 3.4, 5.4, 2.3]},
