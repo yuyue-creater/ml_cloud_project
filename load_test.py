@@ -2,6 +2,7 @@
 import requests
 import time
 import json
+import argparse
 from concurrent.futures import ThreadPoolExecutor
 
 # Endpoints
@@ -38,17 +39,17 @@ def run_load_test(url, requests_per_endpoint=50, concurrent_workers=10):
         for future in futures:
             results.append(future.result())
     return results
+def measure_single_request(url, data):
+    return send_request(url, data)
 
-# Run tests
-container_results = run_load_test(container_url, requests_per_endpoint=20)
-serverless_results = run_load_test(serverless_url, requests_per_endpoint=20)
-
-# Save results to JSON files
-with open("container_results.json", "w") as f:
-    json.dump(container_results, f, indent=2)
-
-with open("serverless_results.json", "w") as f:
-    json.dump(serverless_results, f, indent=2)
+def print_single_result(result, deployment_name):
+    if "latency_sec" in result:
+        print(f"{deployment_name} Single Request Test:")
+        print(f"  Status Code: {result.get('status_code')}")
+        print(f"  Latency: {result['latency_sec']:.3f} sec\n")
+    else:
+        print(f"{deployment_name} Single Request Test Error:")
+        print(f"  Error: {result.get('error')}\n")
 
 # Print summary
 def print_summary(results, deployment_name):
@@ -60,5 +61,51 @@ def print_summary(results, deployment_name):
         print(f"  Max Latency: {max(latencies):.3f} sec")
         print(f"  Min Latency: {min(latencies):.3f} sec\n")
 
-print_summary(container_results, "Container Deployment")
-print_summary(serverless_results, "Serverless Deployment")
+
+def main():
+    parser = argparse.ArgumentParser(description="Load test for container and serverless deployments.")
+    parser.add_argument(
+        "--requests",
+        type=int,
+        default=20,
+        help="Number of requests per endpoint for the warm/longer-run test.",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=10,
+        help="Number of concurrent workers for the warm/longer-run test.",
+    )
+    args = parser.parse_args()
+
+    # Run tests
+    container_cold_result = measure_single_request(container_url, test_inputs[0])
+    serverless_cold_result = measure_single_request(serverless_url, test_inputs[0])
+
+    container_results = run_load_test(
+        container_url,
+        requests_per_endpoint=args.requests,
+        concurrent_workers=args.workers,
+    )
+    serverless_results = run_load_test(
+        serverless_url,
+        requests_per_endpoint=args.requests,
+        concurrent_workers=args.workers,
+    )
+
+    print_single_result(container_cold_result, "Container Deployment")
+    print_single_result(serverless_cold_result, "Serverless Deployment")
+
+    # Save results to JSON files
+    with open("container_results.json", "w") as f:
+        json.dump(container_results, f, indent=2)
+
+    with open("serverless_results.json", "w") as f:
+        json.dump(serverless_results, f, indent=2)
+
+    print_summary(container_results, "Container Deployment")
+    print_summary(serverless_results, "Serverless Deployment")
+
+
+if __name__ == "__main__":
+    main()

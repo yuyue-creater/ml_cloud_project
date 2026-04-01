@@ -33,6 +33,17 @@ def run_load_test(url):
             statuses.append(status)
     return latencies, statuses
 
+# Single-request tests (for potential cold-start measurement)
+c_single_latency, c_single_status = send_post(container_url, payloads[0])
+print("Container Deployment Single Request Test:")
+print(f"  Status Code: {c_single_status}")
+print(f"  Latency: {c_single_latency:.3f} sec")
+
+s_single_latency, s_single_status = send_post(serverless_url, payloads[0])
+print("\nServerless Deployment Single Request Test:")
+print(f"  Status Code: {s_single_status}")
+print(f"  Latency: {s_single_latency:.3f} sec\n")
+
 # Container deployment load test
 c_latencies, c_statuses = run_load_test(container_url)
 print("Container Deployment Concurrent Test:")
